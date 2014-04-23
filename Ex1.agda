@@ -27,16 +27,17 @@ _++_ : forall {m n X} -> Vec X m -> Vec X n -> Vec X (m +N n)
 (x , xs) ++ ys  = x , xs ++ ys
 
 _++'_ : forall {m n X} -> Vec X m -> Vec X n -> Vec X (m +N' n)
-_++'_ {m} {n} xs ys = {!!}
+[] ++' ys = ys
+(_++'_) {su m} {n} {X} (x , xs) ys rewrite lemma+N' m n = x , xs ++' ys
 
 
 {- 1.3 Chop a vector in two. Note how "with" lets us grab more information
    to a pattern match. -}
 
 chop : forall m {n X} -> Vec X (m +N n) -> Vec X m * Vec X n
-chop ze      xs        = {!!}
+chop ze      xs        = [] , xs
 chop (su m)  (x , xs)  with  chop m xs
-chop (su m)  (x , xs)  |     ys , zs    = {!!}
+chop (su m)  (x , xs)  |     ys , zs    = (x , ys) , zs
 
 
 {- Recall zapp and vec -}
@@ -59,13 +60,13 @@ vec {su n} x = x , vec x
 {- 1.4 One-liners, using zapp and vec -}
 
 vmap : forall {n S T} -> (S -> T) -> Vec S n -> Vec T n
-vmap f ss = {!!}
+vmap f ss = zapp (vec f) ss
 
 _+V_ : forall {n} -> Vec Nat n -> Vec Nat n -> Vec Nat n
-xs +V ys = {!!}
+xs +V ys = zapp (zapp (vec _+N_) xs) ys
 
 vzip : forall {n S T} -> Vec S n -> Vec T n -> Vec (S * T) n
-vzip ss ts = {!!}
+vzip ss ts = zapp (zapp (vec _,_) ss) ts
 
 
 {- here is vector traversal -}
@@ -82,22 +83,23 @@ vtrav F pure _$_ f (s , ss)  = (pure _,_ $ f s) $ vtrav F pure _$_ f ss
 {- 1.6 vector map bis -}
 
 vmap' : forall {n S T} -> (S -> T) -> Vec S n -> Vec T n
-vmap' = vtrav {!!} {!!} {!!}
+vmap' = vtrav id id id
 
 
 {- 1.7 vector total -}
 
 vtotal : forall {n} -> Vec Nat n -> Nat
-vtotal = vtrav {!!} {!!} {!!} {!!}
+vtotal = vtrav (λ x → Nat) (λ x → ze) _+N_ {T = Zero} id
 
 
 {- 1.8 scalar product -}
 
 _*N_ : Nat -> Nat -> Nat
-x *N y = {!!}
+ze *N y = ze
+su x *N y = y +N (x *N y)
 
 _*V_ : forall {n} -> Vec Nat n -> Vec Nat n -> Nat
-xs *V ys = {!!}
+xs *V ys = vtotal (zapp (zapp (vec _*N_) xs) ys)
 
 
 {- matrices -}
