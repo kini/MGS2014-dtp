@@ -90,7 +90,7 @@ Ren : Ctx -> Ctx -> Set
 Ren G D = {T : Ty} -> T <: G -> T <: D
 
 REN : Kit \ G T -> T <: G
-REN = kit var id su  
+REN = kit var id su
 
 rename : {G D : Ctx} -> Ren G D -> {T : Ty} -> G |- T -> D |- T
 rename = replace REN
@@ -104,3 +104,19 @@ SUB = kit id var (rename su)
 subst : {G D : Ctx} -> Sub G D -> {T : Ty} -> G |- T -> D |- T
 subst = replace SUB
 
+the : (a : Set) -> a -> a
+the a x = x
+
+swapTopVars : {D : Ctx} {T1 T2 : Ty} -> Sub (D / T1 / T2) (D / T2 / T1)
+swapTopVars ze = var (su ze)
+swapTopVars (su ze) = var ze
+swapTopVars (su (su v)) = var (su (su v))
+
+substTest : {D : Ctx} {T1 T2 : Ty} -> D / T2 / T1 |- T1
+substTest = subst swapTopVars (var (su ze))
+
+plus : Nat -> Nat -> Nat
+plus ze y = y
+plus (su x) y = su (plus x y)
+
+thing = eval substTest ((<> , 3) , 4)
