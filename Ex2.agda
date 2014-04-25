@@ -34,8 +34,10 @@ data Ne G T where
 
 renameNm : forall {G D} -> Ren G D -> forall {T} -> Nm G T -> Nm D T
 renameNe : forall {G D} -> Ren G D -> forall {T} -> Ne G T -> Ne D T
-renameNm f t = {!!}
-renameNe f t = {!!}
+renameNm f (lam t) = lam (renameNm (weak REN f) t)
+renameNm f [ x ] = [ renameNe f x ]
+renameNe f (var x) = var (f x)
+renameNe f (t $ x) = renameNe f t $ renameNm f x
 
 
 {- 2.2 context extensions -}
@@ -49,13 +51,15 @@ data Ext : Set where
 infixl 3 _<><_
 
 -- implement the operation which extends a context and show that there
--- as a renaming from the shorter to the longer
+-- is a renaming from the shorter to the longer
 
 _<><_ : Ctx -> Ext -> Ctx
-G <>< D = {!!}
+G <>< [] = G
+G <>< x , D = G / x <>< D
 
 sucFish : forall {G} X -> Ren G (G <>< X)
-sucFish X x = {!!}
+sucFish [] f = f
+sucFish (x , X) f = sucFish X (su f)
 -- the clue is in the name
 
 
@@ -80,7 +84,11 @@ Go G (S >> T)   -- function type values can compute...
 -- your turn: show that the model admits weakening
 
 wModel : forall {G} T X -> Model G T -> Model (G <>< X) T
-wModel T X t = {!!}
+wModel _ X (inr mn) = inr (renameNe (sucFish X) mn)
+wModel iota _ (inl ())
+wModel (_ >> _) [] g = g
+wModel (S >> T) (x , X) (inl mg) =
+  wModel (S >> T) X (inl (\ Y m' → mg (x , Y) m'))
 
 
 {- 2.4 application (how to go) and quotation (how to stop) -}
@@ -92,9 +100,12 @@ _$$_ : forall {G S T} -> Model G (S >> T) -> Model G S -> Model G T
 stop : forall {G T} -> Model G T -> Nm G T
 -- hint: the fact that I've declared them together may be significant
 
-f $$ s = {!!}
+inl f $$ s = f [] s
+inr f $$ s = inr (f $ stop s)
 
-stop {G} {T} t = {!!}
+stop {G} {iota} (inl ())
+stop {G} {iota} (inr x) = [ x ]
+stop {G} {S >> T} t = lam (stop {!!})
 
 
 {- 2.5 environments -}
@@ -103,7 +114,8 @@ stop {G} {T} t = {!!}
 -- MEnv G D should store a Model D T for each T in G
 
 MEnv : Ctx -> Ctx -> Set
-MEnv G D  = {!!}
+MEnv [] D = One
+MEnv (G / T) D = MEnv G D * Model D T
 
 -- equip your notion of environment with projection
 
@@ -131,13 +143,15 @@ idMEnv = {!!}
 -- environment for its context
 
 model : forall {G T} -> G |- T -> forall {D} -> MEnv G D -> Model D T
-model t g = {!!}
+model (var x) g = inr (var {!!})
+model (t $ t₁) g = {!!}
+model (lam t) g = {!!}
 
 -- put the pieces together and give a (one line) normalization function for open
 -- terms
 
 normal : forall {G T} -> G |- T -> Nm G T
-normal t = {!!}
+normal t = stop (model t idMEnv)
 
 
 {- 2.7 have fun computing; here's a start -}
