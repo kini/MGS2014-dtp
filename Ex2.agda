@@ -103,9 +103,10 @@ stop : forall {G T} -> Model G T -> Nm G T
 inl f $$ s = f [] s
 inr f $$ s = inr (f $ stop s)
 
-stop {G} {iota} (inl ())
-stop {G} {iota} (inr x) = [ x ]
-stop {G} {S >> T} t = lam (stop {!!})
+stop {_} {iota} (inl ())
+stop {_} {iota} (inr x) = [ x ]
+stop {_} {S >> T} t =
+  lam (stop (wModel (S >> T) (S , []) t $$ inr (var ze)))
 
 
 {- 2.5 environments -}
@@ -114,27 +115,27 @@ stop {G} {S >> T} t = lam (stop {!!})
 -- MEnv G D should store a Model D T for each T in G
 
 MEnv : Ctx -> Ctx -> Set
-MEnv [] D = One
-MEnv (G / T) D = MEnv G D * Model D T
+MEnv G D = forall {T} -> T <: G -> Model D T
 
 -- equip your notion of environment with projection
 
 mget : forall {G D T} -> T <: G -> MEnv G D -> Model D T
-mget x g = {!!}
+mget x g = g x
 
 -- equip your notion of environment with extension by one value
 mpush : forall {G D S} -> MEnv G D -> Model D S -> MEnv (G / S) D
-mpush g s = {!!}
+mpush _ s ze = s
+mpush g _ (su x) = g x
 
 -- equip your notion of environment with weakening
 
 wMEnv : forall {G} {D} X -> MEnv G D -> MEnv G (D <>< X)
-wMEnv X g = {!!}
+wMEnv X g x = wModel _ X (g x)
 
 -- construct the identity environment, modelling each free variable as itself
 
 idMEnv : forall {G} -> MEnv G G
-idMEnv = {!!}
+idMEnv x = inr (var x)
 
 
 {- 2.6 evaluation and normalization -}
@@ -143,9 +144,9 @@ idMEnv = {!!}
 -- environment for its context
 
 model : forall {G T} -> G |- T -> forall {D} -> MEnv G D -> Model D T
-model (var x) g = inr (var {!!})
-model (t $ t₁) g = {!!}
-model (lam t) g = {!!}
+model (var x) g = g x
+model (t1 $ t2) g = model t1 g $$ model t2 g
+model (lam t) g = inl (\ X m -> model t (mpush (wMEnv X g) m))
 
 -- put the pieces together and give a (one line) normalization function for open
 -- terms
